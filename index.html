@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>URL Shortener</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #result, #deleteResult, #viewResult {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>URL Shortener</h1>
+    <input type="text" id="longUrl" placeholder="Enter a long URL">
+    <button onclick="shortenUrl()">Shorten URL</button>
+    <div id="result"></div>
+
+    <h2>Delete Short URL</h2>
+    <input type="text" id="shortUrlToDelete" placeholder="Enter a short URL to delete">
+    <button onclick="deleteUrl()">Delete URL</button>
+    <div id="deleteResult"></div>
+
+    <h2>View Long URL</h2>
+    <input type="text" id="shortUrlToView" placeholder="Enter a short URL to view">
+    <button onclick="viewLongUrl()">View Long URL</button>
+    <div id="viewResult"></div>
+
+    <script>
+        function shortenUrl() {
+            const longUrl = document.getElementById("longUrl").value;
+            if (!longUrl) {
+                alert("Please enter a URL");
+                return;
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "/shorten", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        const result = document.getElementById("result");
+                        result.innerHTML = xhr.responseText;
+                    } else {
+                        alert("Error: " + xhr.statusText);
+                    }
+                }
+            };
+            xhr.send("url=" + encodeURIComponent(longUrl));
+        }
+
+        function deleteUrl() {
+            const shortUrl = document.getElementById("shortUrlToDelete").value;
+            if (!shortUrl) {
+                alert("Please enter a short URL");
+                return;
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", "/delete/" + encodeURIComponent(shortUrl), true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        const result = document.getElementById("deleteResult");
+                        result.innerHTML = xhr.responseText;
+                    } else {
+                        alert("Error: " + xhr.statusText);
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        function viewLongUrl() {
+            const shortUrl = document.getElementById("shortUrlToView").value;
+            if (!shortUrl) {
+                alert("Please enter a short URL");
+                return;
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", "/redirect/" + encodeURIComponent(shortUrl) + "/long", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        const result = document.getElementById("viewResult");
+                        result.innerHTML = xhr.responseText;
+                    } else {
+                        alert("Error: " + xhr.statusText);
+                    }
+                }
+            };
+            xhr.send();
+        }
+    </script>
+</body>
+</html>
