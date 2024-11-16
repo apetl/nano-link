@@ -3,108 +3,192 @@
 <head>
     <title>URL Shortener</title>
     <style>
+        :root {
+            /* Catppuccin Mocha palette */
+            --base: #1e1e2e;
+            --surface0: #313244;
+            --surface1: #45475a;
+            --text: #cdd6f4;
+            --subtext0: #a6adc8;
+            --blue: #89b4fa;
+            --lavender: #b4befe;
+            --red: #f38ba8;
+            --overlay0: #6c7086;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
+            background-color: var(--base);
+            color: var(--text);
         }
-        input[type="text"] {
-            width: 300px;
-            padding: 10px;
+
+        .container {
+            background-color: var(--surface0);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        h1, h2 {
+            color: var(--lavender);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], input[type="url"] {
+            width: 70%;
+            padding: 12px;
             font-size: 16px;
+            border: 1px solid var(--surface1);
+            border-radius: 4px;
+            margin-right: 10px;
+            background-color: var(--surface1);
+            color: var(--text);
         }
+
+        input[type="text"]::placeholder, input[type="url"]::placeholder {
+            color: var(--overlay0);
+        }
+
         button {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 16px;
+            background-color: var(--blue);
+            color: var(--base);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
-        #result, #deleteResult, #viewResult {
-            margin-top: 20px;
-            font-weight: bold;
+
+        button:hover {
+            background-color: var(--lavender);
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: var(--surface1);
+            word-break: break-all;
+            color: var(--subtext0);
+        }
+
+        .error {
+            color: var(--red);
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>URL Shortener</h1>
-    <input type="text" id="longUrl" placeholder="Enter a long URL">
-    <button onclick="shortenUrl()">Shorten URL</button>
-    <div id="result"></div>
+    <div class="container">
+        <h1>URL Shortener</h1>
+        <div class="input-group">
+            <input type="url" id="longUrl" placeholder="Enter a long URL (e.g., https://example.com)">
+            <button onclick="shortenUrl()">Shorten URL</button>
+        </div>
+        <div id="result" class="result"></div>
+    </div>
 
-    <h2>Delete Short URL</h2>
-    <input type="text" id="shortUrlToDelete" placeholder="Enter a short URL to delete">
-    <button onclick="deleteUrl()">Delete URL</button>
-    <div id="deleteResult"></div>
+    <div class="container">
+        <h2>Delete Short URL</h2>
+        <div class="input-group">
+            <input type="text" id="shortUrlToDelete" placeholder="Enter the short URL code to delete">
+            <button onclick="deleteUrl()">Delete URL</button>
+        </div>
+        <div id="deleteResult" class="result"></div>
+    </div>
 
-    <h2>View Long URL</h2>
-    <input type="text" id="shortUrlToView" placeholder="Enter a short URL to view">
-    <button onclick="viewLongUrl()">View Long URL</button>
-    <div id="viewResult"></div>
+    <div class="container">
+        <h2>View Long URL</h2>
+        <div class="input-group">
+            <input type="text" id="shortUrlToView" placeholder="Enter the short URL code to view">
+            <button onclick="viewLongUrl()">View Long URL</button>
+        </div>
+        <div id="viewResult" class="result"></div>
+    </div>
 
     <script>
-        function shortenUrl() {
-            const longUrl = document.getElementById("longUrl").value;
+        async function shortenUrl() {
+            const longUrl = document.getElementById("longUrl").value.trim();
+            const resultDiv = document.getElementById("result");
+
             if (!longUrl) {
-                alert("Please enter a URL");
+                showError(resultDiv, "Please enter a URL");
                 return;
             }
 
-            const xhr = new XMLHttpRequest();
-            xhr.open("POST", "/shorten", true);
-            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    if (xhr.status === 200) {
-                        const result = document.getElementById("result");
-                        result.innerHTML = xhr.responseText;
-                    } else {
-                        alert("Error: " + xhr.statusText);
-                    }
-                }
-            };
-            xhr.send("url=" + encodeURIComponent(longUrl));
+            try {
+                const response = await fetch("/shorten", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: "url=" + encodeURIComponent(longUrl)
+                });
+
+                const text = await response.text();
+                if (!response.ok) throw new Error(text);
+
+                resultDiv.innerHTML = text;
+                resultDiv.className = "result";
+            } catch (error) {
+                showError(resultDiv, error.message);
+            }
         }
 
-        function deleteUrl() {
-            const shortUrl = document.getElementById("shortUrlToDelete").value;
+        async function deleteUrl() {
+            const shortUrl = document.getElementById("shortUrlToDelete").value.trim();
+            const resultDiv = document.getElementById("deleteResult");
+
             if (!shortUrl) {
-                alert("Please enter a short URL");
+                showError(resultDiv, "Please enter a short URL");
                 return;
             }
 
-            const xhr = new XMLHttpRequest();
-            xhr.open("GET", "/delete/" + encodeURIComponent(shortUrl), true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    if (xhr.status === 200) {
-                        const result = document.getElementById("deleteResult");
-                        result.innerHTML = xhr.responseText;
-                    } else {
-                        alert("Error: " + xhr.statusText);
-                    }
-                }
-            };
-            xhr.send();
+            try {
+                const response = await fetch("/delete/" + encodeURIComponent(shortUrl));
+                const text = await response.text();
+                if (!response.ok) throw new Error(text);
+
+                resultDiv.innerHTML = text;
+                resultDiv.className = "result";
+            } catch (error) {
+                showError(resultDiv, error.message);
+            }
         }
 
-        function viewLongUrl() {
-            const shortUrl = document.getElementById("shortUrlToView").value;
+        async function viewLongUrl() {
+            const shortUrl = document.getElementById("shortUrlToView").value.trim();
+            const resultDiv = document.getElementById("viewResult");
+
             if (!shortUrl) {
-                alert("Please enter a short URL");
+                showError(resultDiv, "Please enter a short URL");
                 return;
             }
 
-            const xhr = new XMLHttpRequest();
-            xhr.open("GET", "/redirect/" + encodeURIComponent(shortUrl) + "/long", true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    if (xhr.status === 200) {
-                        const result = document.getElementById("viewResult");
-                        result.innerHTML = xhr.responseText;
-                    } else {
-                        alert("Error: " + xhr.statusText);
-                    }
-                }
-            };
-            xhr.send();
+            try {
+                const response = await fetch(`/view/${encodeURIComponent(shortUrl)}`);
+                const text = await response.text();
+                if (!response.ok) throw new Error(text);
+
+                resultDiv.innerHTML = text;
+                resultDiv.className = "result";
+            } catch (error) {
+                showError(resultDiv, error.message);
+            }
+        }
+
+          function showError(element, message) {
+            element.innerHTML = message;
+            element.className = "result error";
         }
     </script>
 </body>
